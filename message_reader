@@ -1,0 +1,49 @@
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <linux/fs.h>
+#include "message_slot.h"
+
+int main(int argc, char const *argv[]){
+    int fd;
+    unsigned long channel_id;
+    char buffer[BUFFER_LEN];
+    ssize_t len_read;
+
+    if (argc != 3){
+        perror("Wrong number of arguments - should provide message slot file path, message channel id");
+        exit(1);
+    }
+
+    fd= open(argv[1], O_RDONLY);
+    if (fd == -1){
+        perror("Failed to open device file\n");
+        exit(1);
+    }
+
+    channel_id = atoi(argv[2]);
+    if (ioctl(fd, MSG_SLOT_CHANNEL, channel_id) != SUCCESS){
+        perror("Failed to set channel's id\n");
+        exit(1);
+    }
+    len_read = read(fd, buffer, BUFFER_LEN);
+    if (len_read < 0){
+        perror("Falide to read from message slot\n");
+        exit(1);
+    }
+
+    if (close(fd) < 0){
+        perror("Failed to close the file");
+        exit(1);
+    }
+
+    if (write(1, buffer, len_read) < 0){
+        perror("Failed to write message to stdout\n");
+        exit(1);
+    }
+    exit(SUCCESS);
+}
